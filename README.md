@@ -6,7 +6,7 @@
 
 # ESTO ES UN TEMPLATE, COMPLETAR LO QUE HAGA FALTA, ELIMINAR LO QUE SOBRE (INCLUIDA ESTA LÍNEA)
 
-## Alumno: (Nombre Apellido) - (Padrón) - (Mail)
+## Alumno: Tobias Portella - 112257 - tobias240405@gmail.com
 
 - Para compilar:
 
