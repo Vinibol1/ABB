@@ -1,6 +1,7 @@
 #include "pa2m.h"
 #include "src/abb.h"
 #include "src/abb_estructura_privada.h"
+#include <string.h>
 
 int comparador(void *numero, void *numero2)
 {
@@ -16,7 +17,7 @@ int comparador(void *numero, void *numero2)
 bool funcion_iterar(void *elem, void *ctx)
 {
 	int *num = elem;
-	printf("%i\n", *num);
+	printf("%i", *num);
 	(*num)++;
 	return true;
 }
@@ -161,7 +162,7 @@ void abb_iterar_postorder_prueba_un_elem()
 	int *num_aux2 = abb->raiz->elemento;
 
 	pa2m_afirmar(num_aux == 1,
-		     "abb postorden itero corractamente: 1 == %zu", num_aux);
+		     "\nabb postorden itero corractamente: 1 == %zu", num_aux);
 	pa2m_afirmar(
 		*num_aux2 == 3,
 		"abb postorden itero y aplico función corractamente: 3 == %zu",
@@ -181,6 +182,7 @@ void abb_iterar_inorder_prueba()
 	abb_insertar(abb, &num2);
 	abb_insertar(abb, &num3);
 	abb_insertar(abb, &num4);
+
 	size_t num_aux = abb_iterar_inorden(abb, funcion_iterar, NULL);
 	int *num_aux2 = abb->raiz->elemento;
 	int *num_aux3 = abb->raiz->der->elemento;
@@ -253,6 +255,228 @@ void abb_obtener_prueba()
 	abb_destruir(abb);
 }
 
+void abb_quitar_prueba()
+{
+	abb_t *abb = abb_crear(comparador);
+	int num = 2;
+	int num2 = 4;
+	int num3 = 5;
+	int num4 = 3;
+	int num5 = 0;
+	int num6 = 1;
+	abb_insertar(abb, &num);
+	abb_insertar(abb, &num2);
+	abb_insertar(abb, &num3);
+	abb_insertar(abb, &num4);
+	abb_insertar(abb, &num5);
+	abb_insertar(abb, &num6);
+
+	pa2m_afirmar(abb_cantidad(abb) == 6, "abb_cantidad devuelve 6");
+
+	void *num_aux = NULL;
+	pa2m_afirmar(abb_quitar(abb, &num, &num_aux) == true,
+		     "abb_quitar devuelve true");
+	int *numero_aux = num_aux;
+	pa2m_afirmar(*numero_aux == 2,
+		     "abb_quitar obtuvo correctamente: 2 == %zu", *numero_aux);
+	int *numero = abb->raiz->elemento;
+	pa2m_afirmar(
+		*numero == 1,
+		"abb_quitar dejo en posicion correcta el elemento del arbol: 1 == %zu",
+		*numero);
+
+	pa2m_afirmar(abb_cantidad(abb) == 5, "abb_cantidad devuelve 5");
+
+	void *num_aux2 = NULL;
+	pa2m_afirmar(abb_quitar(abb, &num2, &num_aux2) == true,
+		     "abb_quitar devuelve true");
+	int *numero_aux2 = num_aux2;
+	pa2m_afirmar(*numero_aux2 == 4,
+		     "abb_quitar obtuvo correctamente: 4 == %zu", *numero_aux2);
+	int *numero2 = abb->raiz->der->elemento;
+	pa2m_afirmar(
+		*numero2 == 3,
+		"abb_quitar dejo en posicion correcta el elemento del arbol:3 == %zu",
+		*numero2);
+
+	void *num_aux3 = NULL;
+	pa2m_afirmar(abb_quitar(abb, &num3, &num_aux3) == true,
+		     "abb_quitar devuelve true");
+	int *numero_aux3 = num_aux3;
+	pa2m_afirmar(*numero_aux3 == 5,
+		     "abb_quitar obtuvo correctamente: 5 == %zu", *numero_aux3);
+	pa2m_afirmar(abb->raiz->der->der == NULL,
+		     "abb_quitar devuelve NULL en la posición quitada");
+
+	void *num_aux4 = NULL;
+	pa2m_afirmar(abb_quitar(abb, &num4, &num_aux4) == true,
+		     "abb_quitar devuelve true");
+	int *numero_aux4 = num_aux4;
+	pa2m_afirmar(*numero_aux4 == 3,
+		     "abb_quitar obtuvo correctamente: 3 == %zu", *numero_aux4);
+	pa2m_afirmar(abb->raiz->der == NULL,
+		     "abb_quitar devuelve NULL en la posición quitada");
+
+	void *num_aux6 = NULL;
+	pa2m_afirmar(abb_quitar(abb, &num6, &num_aux6) == true,
+		     "abb_quitar devuelve true");
+	int *numero_aux6 = num_aux6;
+	pa2m_afirmar(*numero_aux6 == 1,
+		     "abb_quitar obtuvo correctamente: 1 == %zu", *numero_aux6);
+	int *numero3 = abb->raiz->elemento;
+	pa2m_afirmar(*numero3 == 0,
+		     "abb_quitar devuelve NULL en la posición quitada");
+
+	void *num_aux5 = NULL;
+	pa2m_afirmar(abb_quitar(abb, &num5, &num_aux5) == true,
+		     "abb_quitar devuelve true");
+	int *numero_aux5 = num_aux5;
+	pa2m_afirmar(*numero_aux5 == 0,
+		     "abb_quitar obtuvo correctamente: 0 == %zu", *numero_aux5);
+	pa2m_afirmar(abb->raiz == NULL,
+		     "abb_quitar devuelve NULL en la posición quitada");
+
+	pa2m_afirmar(abb_cantidad(abb) == 0, "abb_cantidad devuelve 0");
+
+	abb_destruir(abb);
+}
+
+void abb_quitar_pruebas_de_funcionamiento_parametros_erroneos()
+{
+	abb_t *abb = abb_crear(comparador);
+	int num = 2;
+	int num2 = 4;
+	int num3 = 5;
+	int num4 = 3;
+	int num5 = 0;
+	int num6 = 1;
+	abb_insertar(abb, &num);
+	abb_insertar(abb, &num2);
+	abb_insertar(abb, &num3);
+	abb_insertar(abb, &num4);
+	abb_insertar(abb, &num5);
+
+	pa2m_afirmar(abb_cantidad(abb) == 5, "abb_cantidad devuelve 5");
+
+	void *num_aux = NULL;
+	pa2m_afirmar(abb_quitar(abb, &num6, &num_aux) == false,
+		     "abb_quitar devuelve false");
+	int *numero_aux = num_aux;
+	pa2m_afirmar(numero_aux == NULL, "abb_quitar obtuvo NULL");
+
+	pa2m_afirmar(abb_cantidad(abb) == 5, "abb_cantidad devuelve 5");
+
+	pa2m_afirmar(abb_quitar(abb, NULL, num_aux) == false,
+		     "abb_quitar devuelve false si se pasa NULL");
+
+	abb_destruir(abb);
+}
+
+void abb_vectorizar_inorder_pruebas()
+{
+	abb_t *abb = abb_crear(comparador);
+	int num = 2;
+	int num2 = 3;
+	int num3 = 4;
+	int num4 = 1;
+	abb_insertar(abb, &num);
+	abb_insertar(abb, &num2);
+	abb_insertar(abb, &num3);
+	abb_insertar(abb, &num4);
+
+	int *vector_[4];
+	abb_vectorizar_inorden(abb, (void **)&vector_, 4);
+
+	pa2m_afirmar(*vector_[0] == 1,
+		     "abb_obtener obtuvo correctamente: 1 == %zu", *vector_[0]);
+	pa2m_afirmar(*vector_[1] == 2,
+		     "abb_obtener obtuvo correctamente: 2 == %zu", *vector_[1]);
+	pa2m_afirmar(*vector_[2] == 3,
+		     "abb_obtener obtuvo correctamente: 3 == %zu", *vector_[2]);
+	pa2m_afirmar(*vector_[3] == 4,
+		     "abb_obtener obtuvo correctamente: 4 == %zu", *vector_[3]);
+	abb_destruir(abb);
+}
+
+void abb_vectorizar_inorder_pruebas2()
+{
+	abb_t *abb = abb_crear(comparador);
+	char *num = "asd";
+	char *num2 = "dsa";
+	char *num3 = "qwe";
+	char *num4 = "zxc";
+	abb_insertar(abb, &num);
+	abb_insertar(abb, &num2);
+	abb_insertar(abb, &num3);
+	abb_insertar(abb, &num4);
+
+	char **vector_[4];
+	abb_vectorizar_inorden(abb, (void **)&vector_, 4);
+
+	pa2m_afirmar(strcmp(**vector_, "asd") == 0,
+		     "abb_obtener obtuvo correctamente: asd == %s ", **vector_);
+	pa2m_afirmar(strcmp(*vector_[1], "dsa") == 0,
+		     "abb_obtener obtuvo correctamente: dsa == %s ", **vector_);
+	pa2m_afirmar(strcmp(*vector_[2], "qwe") == 0,
+		     "abb_obtener obtuvo correctamente: qwe == %s ", **vector_);
+	pa2m_afirmar(strcmp(*vector_[3], "zxc") == 0,
+		     "abb_obtener obtuvo correctamente: zxc == %s ", **vector_);
+
+	abb_destruir(abb);
+}
+
+void abb_vectorizar_preorder_pruebas()
+{
+	abb_t *abb = abb_crear(comparador);
+	int num = 2;
+	int num2 = 3;
+	int num3 = 4;
+	int num4 = 1;
+	abb_insertar(abb, &num);
+	abb_insertar(abb, &num2);
+	abb_insertar(abb, &num3);
+	abb_insertar(abb, &num4);
+
+	int *vector_[4];
+	abb_vectorizar_preorden(abb, (void **)&vector_, 4);
+
+	pa2m_afirmar(*vector_[0] == 2,
+		     "abb_obtener obtuvo correctamente: 2 == %zu", *vector_[0]);
+	pa2m_afirmar(*vector_[1] == 1,
+		     "abb_obtener obtuvo correctamente: 1 == %zu", *vector_[1]);
+	pa2m_afirmar(*vector_[2] == 3,
+		     "abb_obtener obtuvo correctamente: 3 == %zu", *vector_[2]);
+	pa2m_afirmar(*vector_[3] == 4,
+		     "abb_obtener obtuvo correctamente: 4 == %zu", *vector_[3]);
+	abb_destruir(abb);
+}
+
+void abb_vectorizar_postorder_pruebas()
+{
+	abb_t *abb = abb_crear(comparador);
+	int num = 2;
+	int num2 = 3;
+	int num3 = 4;
+	int num4 = 1;
+	abb_insertar(abb, &num);
+	abb_insertar(abb, &num2);
+	abb_insertar(abb, &num3);
+	abb_insertar(abb, &num4);
+
+	int *vector_[4];
+	abb_vectorizar_postorden(abb, (void **)&vector_, 4);
+
+	pa2m_afirmar(*vector_[0] == 1,
+		     "abb_obtener obtuvo correctamente: 2 == %zu", *vector_[0]);
+	pa2m_afirmar(*vector_[1] == 4,
+		     "abb_obtener obtuvo correctamente: 1 == %zu", *vector_[1]);
+	pa2m_afirmar(*vector_[2] == 3,
+		     "abb_obtener obtuvo correctamente: 3 == %zu", *vector_[2]);
+	pa2m_afirmar(*vector_[3] == 2,
+		     "abb_obtener obtuvo correctamente: 4 == %zu", *vector_[3]);
+	abb_destruir(abb);
+}
+
 int main()
 {
 	pa2m_nuevo_grupo("abb crear");
@@ -270,6 +494,14 @@ int main()
 	abb_iterar_inorder_prueba_un_elem();
 	pa2m_nuevo_grupo("abb obtener");
 	abb_obtener_prueba();
+	pa2m_nuevo_grupo("abb quitar");
+	abb_quitar_prueba();
+	abb_quitar_pruebas_de_funcionamiento_parametros_erroneos();
+	pa2m_nuevo_grupo("abb vectorizar inorden");
+	abb_vectorizar_inorder_pruebas();
+	abb_vectorizar_inorder_pruebas2();
+	pa2m_nuevo_grupo("abb vectorizar preorden");
+	abb_vectorizar_preorder_pruebas();
 
 	return pa2m_mostrar_reporte();
 }
