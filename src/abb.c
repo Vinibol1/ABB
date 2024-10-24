@@ -55,7 +55,7 @@ bool asignar_nodo_abb(abb_t *abb, char nodo, void *elemento)
 
 bool abb_insertar(abb_t *abb, void *elemento)
 {
-	if (!abb || !elemento)
+	if (!abb)
 		return false;
 	abb->nodos += 1;
 	if (abb->raiz == NULL)
@@ -86,6 +86,16 @@ bool abb_insertar(abb_t *abb, void *elemento)
 	}
 }
 
+nodo_t *abb_quitar_1_hijo(nodo_t *raiz)
+{
+	nodo_t *raiz_aux = raiz;
+	raiz_aux = raiz->der;
+	if (!raiz_aux)
+		raiz_aux = raiz->izq;
+	free(raiz);
+	raiz = raiz_aux;
+	return raiz;
+}
 /**
  *Quita el predecesor buscado del arbol. Si lo encuentra y encontrado no es
  *NULL, almacena el puntero.
@@ -94,27 +104,24 @@ nodo_t *abb_quitar_predecesor(nodo_t *raiz, void **predecesor)
 {
 	if (!raiz->der) {
 		if (!raiz->elemento) {
-			free(raiz);
-			return NULL;
+			return abb_quitar_1_hijo(raiz);
 		}
 		*predecesor = raiz->elemento;
-		free(raiz);
-		return NULL;
+		return abb_quitar_1_hijo(raiz);
 	}
 
 	raiz->der = abb_quitar_predecesor(raiz->der, predecesor);
 	return raiz;
 }
 
-nodo_t *abb_quitar_funcion_aux_aux(abb_t *abb, nodo_t *raiz, void *buscado,
-				   void **encontrado)
+nodo_t *abb_quitar_funcion_aux(abb_t *abb, nodo_t *raiz, void *buscado,
+			       void **encontrado)
 {
-	nodo_t *raiz_aux = raiz;
 	void *predecesor = NULL;
 	int comparador = abb->comparador(buscado, raiz->elemento);
 	if (comparador == 0) {
 		abb->nodos -= 1;
-		if (raiz->elemento)
+		if (raiz->elemento && encontrado)
 			*encontrado = raiz->elemento;
 		if (raiz->izq && raiz->der) {
 			raiz->izq =
@@ -122,64 +129,93 @@ nodo_t *abb_quitar_funcion_aux_aux(abb_t *abb, nodo_t *raiz, void *buscado,
 			raiz->elemento = predecesor;
 			return raiz;
 
-		} else {
-			raiz_aux = raiz->der;
-			if (!raiz_aux)
-				raiz_aux = raiz->izq;
-
-			if (abb->raiz == raiz)
-				abb->raiz = raiz_aux;
-
-			free(raiz);
-			raiz = raiz_aux;
-			return raiz;
-		}
+		} else
+			return abb_quitar_1_hijo(raiz);
 	}
 	if (comparador < 0) {
 		if (!raiz->izq)
 			return raiz;
-		raiz->izq = abb_quitar_funcion_aux_aux(abb, raiz->izq, buscado,
-						       encontrado);
+		raiz->izq = abb_quitar_funcion_aux(abb, raiz->izq, buscado,
+						   encontrado);
 	} else {
 		if (!raiz->der)
 			return raiz;
-		raiz->der = abb_quitar_funcion_aux_aux(abb, raiz->der, buscado,
-						       encontrado);
+		raiz->der = abb_quitar_funcion_aux(abb, raiz->der, buscado,
+						   encontrado);
 	}
 	return raiz;
 }
 
 bool abb_quitar(abb_t *abb, void *buscado, void **encontrado)
 {
-	if (!abb->raiz || !abb || !buscado)
+	if (!abb || !abb->raiz)
 		return false;
 	size_t cantidad_anterior = abb->nodos;
-	abb_quitar_funcion_aux_aux(abb, abb->raiz, buscado, encontrado);
+	abb->raiz = abb_quitar_funcion_aux(abb, abb->raiz, buscado, encontrado);
 	if (cantidad_anterior == abb->nodos)
 		return false;
 
 	return true;
 }
+
+size_t abb_iterar_preorden_aux(abb_t *abb, bool (*f)(void *, void *), void *ctx,
+			       bool *seguir_iterando)
+{
+	if (!abb || !f || !abb->raiz || *seguir_iterando == false)
+		return 0;
+	abb_t abb_temp = *abb;
+	size_t contador = 0;
+	*seguir_iterando = true;
+	if (abb->raiz) {
+		if (*seguir_iterando == false)
+			return contador;
+		*seguir_iterando = f(abb->raiz->elemento, ctx);
+		++contador;
+	}
+	if (abb->raiz->izq) {
+		abb_temp.raiz = abb->raiz->izq;
+		contador += abb_iterar_preorden_aux(&abb_temp, f, ctx,
+						    seguir_iterando);
+	}
+	if (abb->raiz->der) {
+		abb_temp.raiz = abb->raiz->der;
+		contador += abb_iterar_preorden_aux(&abb_temp, f, ctx,
+						    seguir_iterando);
+	}
+	return contador;
+}
+
 size_t abb_iterar_preorden(abb_t *abb, bool (*f)(void *, void *), void *ctx)
 {
 	if (!abb || !f || !abb->raiz)
 		return 0;
+	bool iterar = true;
+	return abb_iterar_preorden_aux(abb, f, ctx, &iterar);
+}
+
+size_t abb_iterar_inorden_aux(abb_t *abb, bool (*f)(void *, void *), void *ctx,
+			      bool *seguir_iterando)
+{
+	if (!abb || !f || !abb->raiz || *seguir_iterando == false)
+		return 0;
 	abb_t abb_temp = *abb;
 	size_t contador = 0;
-	if (abb->raiz) {
-		if (!f(abb->raiz->elemento, ctx)) {
-			contador += 1;
-			return contador;
-		}
-		contador += 1;
-	}
+	*seguir_iterando = true;
 	if (abb->raiz->izq) {
 		abb_temp.raiz = abb->raiz->izq;
-		contador += abb_iterar_preorden(&abb_temp, f, ctx);
+		contador += abb_iterar_inorden_aux(&abb_temp, f, ctx,
+						   seguir_iterando);
+	}
+	if (abb->raiz) {
+		if (*seguir_iterando == false)
+			return contador;
+		*seguir_iterando = f(abb->raiz->elemento, ctx);
+		++contador;
 	}
 	if (abb->raiz->der) {
 		abb_temp.raiz = abb->raiz->der;
-		contador += abb_iterar_preorden(&abb_temp, f, ctx);
+		contador += abb_iterar_inorden_aux(&abb_temp, f, ctx,
+						   seguir_iterando);
 	}
 	return contador;
 }
@@ -188,23 +224,33 @@ size_t abb_iterar_inorden(abb_t *abb, bool (*f)(void *, void *), void *ctx)
 {
 	if (!abb || !f || !abb->raiz)
 		return 0;
+	bool iterar = true;
+	return abb_iterar_inorden_aux(abb, f, ctx, &iterar);
+}
+
+size_t abb_iterar_postorden_aux(abb_t *abb, bool (*f)(void *, void *),
+				void *ctx, bool *seguir_iterando)
+{
+	if (!abb || !f || !abb->raiz || *seguir_iterando == false)
+		return 0;
 	abb_t abb_temp = *abb;
 	size_t contador = 0;
-
+	*seguir_iterando = true;
 	if (abb->raiz->izq) {
 		abb_temp.raiz = abb->raiz->izq;
-		contador += abb_iterar_inorden(&abb_temp, f, ctx);
-	}
-	if (abb->raiz) {
-		if (!f(abb->raiz->elemento, ctx)) {
-			contador += 1;
-			return contador;
-		}
-		contador += 1;
+		contador += abb_iterar_postorden_aux(&abb_temp, f, ctx,
+						     seguir_iterando);
 	}
 	if (abb->raiz->der) {
 		abb_temp.raiz = abb->raiz->der;
-		contador += abb_iterar_inorden(&abb_temp, f, ctx);
+		contador += abb_iterar_postorden_aux(&abb_temp, f, ctx,
+						     seguir_iterando);
+	}
+	if (abb->raiz) {
+		if (*seguir_iterando == false)
+			return contador;
+		*seguir_iterando = f(abb->raiz->elemento, ctx);
+		++contador;
 	}
 	return contador;
 }
@@ -213,29 +259,13 @@ size_t abb_iterar_postorden(abb_t *abb, bool (*f)(void *, void *), void *ctx)
 {
 	if (!abb || !f || !abb->raiz)
 		return 0;
-	abb_t abb_temp = *abb;
-	size_t contador = 0;
-	if (abb->raiz->izq) {
-		abb_temp.raiz = abb->raiz->izq;
-		contador += abb_iterar_postorden(&abb_temp, f, ctx);
-	}
-	if (abb->raiz->der) {
-		abb_temp.raiz = abb->raiz->der;
-		contador += abb_iterar_postorden(&abb_temp, f, ctx);
-	}
-	if (abb->raiz) {
-		if (!f(abb->raiz->elemento, ctx)) {
-			contador += 1;
-			return contador;
-		}
-		contador += 1;
-	}
-	return contador;
+	bool iterar = true;
+	return abb_iterar_postorden_aux(abb, f, ctx, &iterar);
 }
 
 void *abb_obtener(abb_t *abb, void *elemento)
 {
-	if (!abb->raiz || !abb || !elemento)
+	if (!abb || !abb->raiz || !elemento)
 		return NULL;
 	abb_t abb_temp = *abb;
 	int comparador = abb->comparador(elemento, abb->raiz->elemento);
@@ -266,9 +296,8 @@ void liberar_nodos(abb_t *abb, void (*destructor)(void *))
 	liberar_nodos(&abb_temp, destructor);
 	abb_temp.raiz = abb->raiz->der;
 	liberar_nodos(&abb_temp, destructor);
-	if (destructor) {
+	if (destructor)
 		destructor(abb->raiz->elemento);
-	}
 
 	free(abb->raiz);
 }
@@ -300,52 +329,49 @@ bool asignar_elemento_vector(void *elemento, void *vector)
 
 size_t abb_vectorizar_inorden(abb_t *abb, void **vector, size_t tamaño)
 {
-	if (!abb || !vector || tamaño <= 0)
+	if (!abb || !vector || tamaño == 0)
 		return 0;
-
-	void **vector_aux = malloc(sizeof(abb->raiz->elemento) * tamaño);
-	if (!vector_aux)
-		return 0;
-	void **vector_copia = vector_aux;
-	size_t contador =
-		abb_iterar_inorden(abb, asignar_elemento_vector, &vector_aux);
+	if (tamaño >= abb->nodos)
+		return abb_iterar_inorden(abb, asignar_elemento_vector,
+					  &vector);
+	void **vector_aux = calloc(abb->nodos, sizeof(abb->raiz->elemento));
+	void **vector_aux2 = vector_aux;
+	abb_iterar_inorden(abb, asignar_elemento_vector, &vector_aux);
 	for (size_t i = 0; i < tamaño; i++)
-		vector[i] = vector_copia[i];
-	free(vector_copia);
-	return contador;
+		vector[i] = vector_aux2[i];
+	free(vector_aux2);
+	return tamaño;
 }
 
 size_t abb_vectorizar_preorden(abb_t *abb, void **vector, size_t tamaño)
 {
-	if (!abb || !vector || tamaño <= 0)
+	if (!abb || !vector || tamaño == 0)
 		return 0;
-
-	void **vector_aux = malloc(sizeof(abb->raiz->elemento) * tamaño);
-	if (!vector_aux)
-		return 0;
-	void **vector_copia = vector_aux;
-	size_t contador =
-		abb_iterar_preorden(abb, asignar_elemento_vector, &vector_aux);
+	if (tamaño >= abb->nodos)
+		return abb_iterar_preorden(abb, asignar_elemento_vector,
+					   &vector);
+	void **vector_aux = calloc(abb->nodos, sizeof(abb->raiz->elemento));
+	void **vector_aux2 = vector_aux;
+	abb_iterar_preorden(abb, asignar_elemento_vector, &vector_aux);
 	for (size_t i = 0; i < tamaño; i++)
-		vector[i] = vector_copia[i];
-	free(vector_copia);
-	return contador;
+		vector[i] = vector_aux2[i];
+	free(vector_aux2);
+	return tamaño;
 }
 
 size_t abb_vectorizar_postorden(abb_t *abb, void **vector, size_t tamaño)
 {
-	if (!abb || !vector || tamaño <= 0)
+	if (!abb || !vector || tamaño == 0)
 		return 0;
+	if (tamaño >= abb->nodos)
+		return abb_iterar_postorden(abb, asignar_elemento_vector,
+					    &vector);
+	void **vector_aux = calloc(abb->nodos, sizeof(abb->raiz->elemento));
+	void **vector_aux2 = vector_aux;
 
-	void **vector_aux = malloc(sizeof(abb->raiz->elemento) * tamaño);
-	if (!vector_aux)
-		return 0;
-	void **vector_copia = vector_aux;
-
-	size_t contador =
-		abb_iterar_postorden(abb, asignar_elemento_vector, &vector_aux);
+	abb_iterar_postorden(abb, asignar_elemento_vector, &vector_aux);
 	for (size_t i = 0; i < tamaño; i++)
-		vector[i] = vector_copia[i];
-	free(vector_copia);
-	return contador;
+		vector[i] = vector_aux2[i];
+	free(vector_aux2);
+	return tamaño;
 }
